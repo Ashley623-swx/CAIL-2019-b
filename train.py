@@ -19,7 +19,6 @@ def train_one_epoch(model, optimizer, scheduler, criterion, train_loader, device
 
         # 获取模型输出的相似度
         sim_AB, sim_AC = model(inputs_A, attention_mask_A, inputs_B, attention_mask_B, inputs_C, attention_mask_C)
-        # 将标签 0 转换为 -1，标签 1 保持为 1
         logits = sim_AC - sim_AB
         loss = criterion(logits, labels.float())
 
