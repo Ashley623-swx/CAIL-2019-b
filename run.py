@@ -17,7 +17,7 @@ from valid import valid_one_epoch
 
 
 set_seed(2025)
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device(Config.device if torch.cuda.is_available() else "cpu")
 model = MyModel(Config)
 optimizer = AdamW(model.parameters(), lr=Config.learning_rate, weight_decay=Config.weight_decay)
 criterion = nn.BCEWithLogitsLoss()

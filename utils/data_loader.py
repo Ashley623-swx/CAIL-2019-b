@@ -1,9 +1,10 @@
 import json
 from random import shuffle
 import torch
+import os
 
 from torch.utils.data import Dataset, DataLoader
-from transformers import AutoTokenizer
+from transformers import AutoTokenizer, BertTokenizer
 
 
 def read_json(path):
@@ -19,7 +20,13 @@ def read_json(path):
 
 class MyDataset(Dataset):
     def __init__(self, data, Config):
-        tokenizer = AutoTokenizer.from_pretrained(Config.tokenizer_path)
+        # 使用BertTokenizer直接加载vocab.txt
+        vocab_path = os.path.join(Config.tokenizer_path, 'vocab.txt')
+        if os.path.exists(vocab_path):
+            tokenizer = BertTokenizer(vocab_file=vocab_path)
+        else:
+            raise FileNotFoundError(f"找不到词表文件: {vocab_path}")
+            
         self.inputs_A = tokenizer([x['A'] for x in data],
                                   truncation=True, max_length=Config.max_length,
                                   padding='max_length', return_tensors='pt')

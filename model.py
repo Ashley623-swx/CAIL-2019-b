@@ -1,16 +1,45 @@
 import json
 import torch
 import torch.nn as nn
-from transformers import AutoModel
+from transformers import AutoModel, BertConfig, BertModel
 from config import Config
 import torch.nn.functional as F
+import os
+import re
 
 
 
 class MyModel(nn.Module):
     def __init__(self, Config):
         super(MyModel, self).__init__()
-        self.plm = AutoModel.from_pretrained(Config.plm_path)
+        # 使用BertConfig和BertModel替代AutoModel
+        config_path = os.path.join(Config.plm_path, 'bert_config.json')
+        model_path = os.path.join(Config.plm_path, 'pytorch_model.bin')
+        
+        if os.path.exists(config_path) and os.path.exists(model_path):
+            bert_config = BertConfig.from_json_file(config_path)
+            self.plm = BertModel(bert_config)
+            
+            # 加载预训练权重并处理键名不匹配问题
+            pretrained_dict = torch.load(model_path)
+            model_dict = self.plm.state_dict()
+            
+            # 创建键名映射关系
+            new_dict = {}
+            for k, v in pretrained_dict.items():
+                # 移除bert.前缀和cls.相关权重
+                if k.startswith('bert.'):
+                    new_key = k[5:]  # 去除"bert."前缀
+                    if new_key in model_dict:
+                        new_dict[new_key] = v
+            
+            # 更新模型权重
+            model_dict.update(new_dict)
+            self.plm.load_state_dict(model_dict)
+            print(f"成功加载预训练模型权重")
+        else:
+            raise FileNotFoundError(f"无法找到模型文件: {config_path} 或 {model_path}")
+            
         self.dropout = nn.Dropout(Config.dropout)
         self.fc = nn.Linear(self.plm.config.hidden_size, Config.embedding_dim)
         for param in self.plm.parameters():
